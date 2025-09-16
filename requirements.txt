@@ -1,0 +1,8 @@
+streamlit
+face_recognition
+dlib
+opencv-python
+pillow
+numpy
+pandas
+mediapipe
