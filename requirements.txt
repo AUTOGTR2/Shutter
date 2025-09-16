@@ -1,8 +1,7 @@
 streamlit
-face_recognition
-dlib
+mediapipe
 opencv-python
 pillow
 numpy
 pandas
-mediapipe
+deepface
