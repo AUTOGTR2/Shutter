@@ -1,5 +1,4 @@
 import streamlit as st
-import face_recognition
 import pandas as pd
 import numpy as np
 import mediapipe as mp
