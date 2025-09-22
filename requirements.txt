@@ -1,4 +1,5 @@
 streamlit
+face_recognition
 mediapipe
 opencv-python
 pillow
