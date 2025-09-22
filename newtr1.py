@@ -1,4 +1,5 @@
 import streamlit as st
+import face_recognition
 import pandas as pd
 import numpy as np
 import mediapipe as mp
@@ -373,7 +374,10 @@ elif menu == "สถิติ":
                 st.markdown("### 📊 กราฟแท่งแสดงจำนวนครั้ง")
                 chart_data = summary.set_index("ชื่อ")["จำนวนครั้ง"]
                 st.bar_chart(chart_data)
-    elif mode=="🎥 Realtime กล้อง":
+    # ------------------------------
+    # 🎥 Realtime กล้อง
+    # ------------------------------
+    elif mode == "🎥 Realtime กล้อง":
         log_files = sorted([f for f in os.listdir("attendance_realtime") if f.endswith(".csv")])
         if not log_files:
             st.info("ยังไม่มีข้อมูล Realtime")
@@ -382,17 +386,33 @@ elif menu == "สถิติ":
             df = pd.read_csv(os.path.join("attendance_realtime", selected_file))
             if 'วิชา' not in df.columns: df['วิชา']="ไม่ระบุ"
             if 'last_seen' not in df.columns: df['last_seen']="--"
+
             subjects = df['วิชา'].unique()
             selected_subject = st.selectbox("เลือกวิชา", subjects)
+
             df_filtered = df[df['วิชา']==selected_subject]
-            now = datetime.now()
-            def check_status(t):
-                try:
-                    last_time = datetime.strptime(t, "%H:%M:%S")
-                    return "✅ อยู่" if (now - last_time).seconds <= 300 else "❌ ไม่อยู่"
-                except:
-                    return "❌ ไม่อยู่"
-            df_filtered["status"] = df_filtered["last_seen"].apply(check_status)
-            st.markdown(f"### Realtime รายงานวันที่ {selected_file.replace('.csv','')} (วิชา: {selected_subject})")
-            st.write(f"นักเรียนทั้งหมด: {df_filtered['ชื่อ'].nunique()} คน")
-            st.table(df_filtered[["ชื่อ","ชั้น","เลขที่","last_seen","status"]])
+
+            # ✅ เลือกนักเรียนเพื่อดูรายบุคคล
+            student_names = df_filtered['ชื่อ'].dropna().unique()
+            if len(student_names) == 0:
+                st.warning("ยังไม่มีนักเรียนที่ถูกบันทึกในวันนี้")
+            else:
+                selected_student = st.selectbox("เลือกชื่อนักเรียน", student_names)
+
+                df_student = df_filtered[df_filtered['ชื่อ']==selected_student]
+
+                # ✅ คำนวณสถานะทั้งคาบ
+                total_records = len(df_student)
+                absent_records = sum(df_student["ชื่อ"].isna())  # ถ้าไม่ถูกตรวจจับ
+                present_records = total_records - absent_records
+
+                status = "✅ มาเรียน" if absent_records <= 3 else "❌ ไม่มาเรียน"
+
+                st.markdown(f"### รายงาน {selected_student} วันที่ {selected_file.replace('.csv','')} (วิชา: {selected_subject})")
+                st.write(f"- จำนวนครั้งที่ระบบตรวจจับได้: {present_records}")
+                st.write(f"- จำนวนครั้งที่ตรวจแล้วไม่พบ: {absent_records}")
+                st.write(f"- สรุปสถานะ: **{status}**")
+
+                # ✅ แสดงตาราง log รายครั้ง
+                st.markdown("### 🔍 บันทึกรายครั้ง")
+                st.table(df_student[["ชื่อ","ชั้น","เลขที่","last_seen"]])
